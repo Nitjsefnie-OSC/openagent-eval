@@ -5,6 +5,7 @@ Measures ranking quality of retrieved contexts.
 
 from __future__ import annotations
 
+from functools import cache
 from typing import Any
 
 from openagent_eval.metrics.base import BaseMetric, MetricResult
@@ -29,6 +30,7 @@ def _dcg(relevances: list[int], k: int) -> float:
     return sum(rel / _log2(i + 2) for i, rel in enumerate(relevances))
 
 
+@cache
 def _log2(x: float) -> float:
     """Compute log base 2."""
     import math
