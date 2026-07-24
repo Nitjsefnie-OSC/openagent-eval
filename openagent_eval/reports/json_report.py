@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from openagent_eval.core.engine import EvaluationReport
 from openagent_eval.reports.base import ReportGenerator
 
 
@@ -36,7 +37,7 @@ class JSONReport(ReportGenerator):
         self.indent = indent
         self.sort_keys = sort_keys
 
-    def generate(self, report: Any) -> str:
+    def generate(self, report: EvaluationReport) -> str:
         """Generate a JSON report string.
 
         Args:
@@ -117,7 +118,7 @@ class JSONReport(ReportGenerator):
             ensure_ascii=False,
         )
 
-    def generate_to_file(self, report: Any, output_path: Path | str) -> Path:
+    def generate_to_file(self, report: EvaluationReport, output_path: Path | str) -> Path:
         """Generate JSON report and write to file.
 
         Args:
@@ -137,7 +138,7 @@ class JSONReport(ReportGenerator):
         path.write_text(content, encoding="utf-8")
         return path
 
-    def generate_compact(self, report: Any) -> str:
+    def generate_compact(self, report: EvaluationReport) -> str:
         """Generate a compact JSON report without indentation.
 
         Args:

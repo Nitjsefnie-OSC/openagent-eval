@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from openagent_eval.core.engine import EvaluationReport
 from openagent_eval.core.pipeline import PipelineResult
 
 
@@ -67,6 +68,10 @@ class ExperimentComparison:
     metric_deltas: dict[str, float] = field(default_factory=dict)
 
 
+# Concrete generators accept EvaluationReport; ComparisonReport uses ExperimentComparison.
+ReportInput = EvaluationReport | ExperimentComparison
+
+
 class ReportGenerator(ABC):
     """Abstract base class for all report generators.
 
@@ -83,7 +88,7 @@ class ReportGenerator(ABC):
     """
 
     @abstractmethod
-    def generate(self, report: Any) -> str:
+    def generate(self, report: EvaluationReport) -> str:
         """Generate a report from evaluation results.
 
         Args:
@@ -95,7 +100,9 @@ class ReportGenerator(ABC):
         ...
 
     @abstractmethod
-    def generate_to_file(self, report: Any, output_path: Path | str) -> Path:
+    def generate_to_file(
+        self, report: EvaluationReport, output_path: Path | str
+    ) -> Path:
         """Generate a report and write it to a file.
 
         Args:

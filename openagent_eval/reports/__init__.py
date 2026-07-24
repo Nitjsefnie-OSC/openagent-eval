@@ -13,6 +13,7 @@ from openagent_eval.reports.base import (
     FailureInfo,
     ReportConfig,
     ReportGenerator,
+    ReportInput,
 )
 from openagent_eval.reports.comparison import ComparisonReport
 from openagent_eval.reports.html import HTMLReport
@@ -23,6 +24,7 @@ from openagent_eval.reports.terminal import TerminalReport
 __all__ = [
     "ReportGenerator",
     "ReportConfig",
+    "ReportInput",
     "FailureInfo",
     "ExperimentComparison",
     "TerminalReport",
