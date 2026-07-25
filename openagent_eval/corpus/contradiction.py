@@ -110,7 +110,7 @@ class ContradictionDetector(BaseCorpusAnalyzer):
             )
 
         # Compare pairs using LLM with bounded concurrency
-        semaphore = asyncio.Semaphore(5)
+        semaphore = asyncio.Semaphore(self.max_concurrency)
 
         async def bounded_compare(
             doc_a: CorpusDocument,
