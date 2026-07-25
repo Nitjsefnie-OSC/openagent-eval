@@ -58,6 +58,7 @@ class ContradictionDetector(BaseCorpusAnalyzer):
         llm_provider: Any | None = None,
         model: str | None = None,
         max_pairs: int = 50,
+        max_concurrency: int = 5,
     ) -> None:
         """Initialize the contradiction detector.
 
@@ -65,10 +66,12 @@ class ContradictionDetector(BaseCorpusAnalyzer):
             llm_provider: LLM provider instance with a generate() method.
             model: Model identifier (for display purposes).
             max_pairs: Maximum document pairs to compare.
+            max_concurrency: Maximum number of concurrent LLM requests.
         """
         self.llm_provider = llm_provider
         self.model = model
         self.max_pairs = max_pairs
+        self.max_concurrency = max_concurrency
 
     async def analyze(
         self,
@@ -106,9 +109,24 @@ class ContradictionDetector(BaseCorpusAnalyzer):
                 metadata={"requires_llm": True},
             )
 
-        # Compare pairs using LLM
-        tasks = [self._compare_pair(doc_a, doc_b) for doc_a, doc_b in pairs[:self.max_pairs]]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        # Compare pairs using LLM with bounded concurrency
+        semaphore = asyncio.Semaphore(self.max_concurrency)
+
+        async def bounded_compare(
+            doc_a: CorpusDocument,
+            doc_b: CorpusDocument,
+        ) -> CorpusIssue | None:
+            async with semaphore:
+                return await self._compare_pair(doc_a, doc_b)
+
+        tasks = [
+            bounded_compare(doc_a, doc_b) for doc_a, doc_b in pairs[: self.max_pairs]
+        ]
+
+        results = await asyncio.gather(
+            *tasks,
+            return_exceptions=True,
+        )
 
         for result in results:
             if isinstance(result, CorpusIssue):
@@ -155,9 +173,7 @@ class ContradictionDetector(BaseCorpusAnalyzer):
             for doc_b in documents[i + 1 :]:
                 words_b = set(doc_b.content.lower().split())
                 # Check for shared significant words (length > 4)
-                shared = {
-                    w for w in words_a & words_b if len(w) > 4
-                }
+                shared = {w for w in words_a & words_b if len(w) > 4}
                 if len(shared) >= 3:
                     pairs.append((doc_a, doc_b))
 
@@ -189,7 +205,11 @@ class ContradictionDetector(BaseCorpusAnalyzer):
             response = await self.llm_provider.generate(prompt)
             result = self._parse_response(response)
 
-            if result and result.get("contradicts") and result.get("confidence", 0) > 0.7:
+            if (
+                result
+                and result.get("contradicts")
+                and result.get("confidence", 0) > 0.7
+            ):
                 severity = (
                     IssueSeverity.HIGH
                     if result.get("confidence", 0) > 0.9
@@ -199,7 +219,9 @@ class ContradictionDetector(BaseCorpusAnalyzer):
                     issue_type=IssueType.CONTRADICTION,
                     severity=severity,
                     title=f"Contradiction on '{result.get('topic', 'shared topic')}'",
-                    description=result.get("explanation", "Documents present conflicting information"),
+                    description=result.get(
+                        "explanation", "Documents present conflicting information"
+                    ),
                     document_ids=[doc_a.doc_id, doc_b.doc_id],
                     metadata={
                         "confidence": result.get("confidence", 0),
@@ -228,7 +250,9 @@ class ContradictionDetector(BaseCorpusAnalyzer):
             start = response.find("{")
             end = response.rfind("}") + 1
             if start != -1 and end > start:
-                return json.loads(response[start:end])
+                parsed = json.loads(response[start:end])
+                if isinstance(parsed, dict):
+                    return parsed
         except (json.JSONDecodeError, ValueError):
             pass
         return None
