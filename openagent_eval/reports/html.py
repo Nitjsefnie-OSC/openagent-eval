@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from openagent_eval.core.engine import EvaluationReport
 from openagent_eval.reports.base import ReportGenerator
 
 
@@ -81,7 +82,7 @@ class HTMLReport(ReportGenerator):
         template = env.from_string(template_str)
         return template.render(**context)
 
-    def generate(self, report: Any) -> str:
+    def generate(self, report: EvaluationReport) -> str:
         """Generate an HTML report string.
 
         Args:
@@ -138,7 +139,7 @@ class HTMLReport(ReportGenerator):
 
         return self._render_template(context)
 
-    def generate_to_file(self, report: Any, output_path: Path | str) -> Path:
+    def generate_to_file(self, report: EvaluationReport, output_path: Path | str) -> Path:
         """Generate HTML report and write to file.
 
         Args:

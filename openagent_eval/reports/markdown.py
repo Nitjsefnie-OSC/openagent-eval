@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
+from openagent_eval.core.engine import EvaluationReport
 from openagent_eval.reports.base import ReportGenerator
 
 
@@ -25,7 +25,7 @@ class MarkdownReport(ReportGenerator):
     - Configuration details
     """
 
-    def generate(self, report: Any) -> str:
+    def generate(self, report: EvaluationReport) -> str:
         """Generate a Markdown report string.
 
         Args:
@@ -166,7 +166,7 @@ class MarkdownReport(ReportGenerator):
 
         return "\n".join(sections)
 
-    def generate_to_file(self, report: Any, output_path: Path | str) -> Path:
+    def generate_to_file(self, report: EvaluationReport, output_path: Path | str) -> Path:
         """Generate Markdown report and write to file.
 
         Args:

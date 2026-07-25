@@ -6,7 +6,7 @@ import json
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from openagent_eval.core.engine import EvaluationReport
 from openagent_eval.core.pipeline import EvaluationResult, PipelineResult
@@ -91,7 +91,7 @@ class ReportManager:
         path = output_dir / f"{report_id}.json"
         if not path.exists():
             raise FileNotFoundError(f"Report not found: {report_id}")
-        return json.loads(path.read_text(encoding="utf-8"))
+        return cast("dict[str, Any]", json.loads(path.read_text(encoding="utf-8")))
 
     def list_reports(self, output_dir: Path) -> list[dict[str, str]]:
         """List all reports in the output directory.

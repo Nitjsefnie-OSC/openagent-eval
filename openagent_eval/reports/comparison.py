@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 from openagent_eval.reports.base import ExperimentComparison, ReportGenerator
 
@@ -23,7 +22,7 @@ class ComparisonReport(ReportGenerator):
     - Winner determination
     """
 
-    def generate(self, report: Any) -> str:
+    def generate(self, report: ExperimentComparison) -> str:  # type: ignore[override]
         """Generate a comparison report string.
 
         Note: ``report`` should be an ExperimentComparison object.
@@ -163,7 +162,9 @@ class ComparisonReport(ReportGenerator):
 
         return "\n".join(lines)
 
-    def generate_to_file(self, report: Any, output_path: Path | str) -> Path:
+    def generate_to_file(  # type: ignore[override]
+        self, report: ExperimentComparison, output_path: Path | str
+    ) -> Path:
         """Generate comparison report and write to file.
 
         Args:

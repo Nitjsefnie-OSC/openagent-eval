@@ -7,12 +7,12 @@ results as formatted console output with tables, panels, and colors.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from openagent_eval.core.engine import EvaluationReport
 from openagent_eval.reports.base import ReportGenerator
 
 
@@ -34,7 +34,7 @@ class TerminalReport(ReportGenerator):
         """
         self.console = console or Console()
 
-    def generate(self, report: Any) -> str:
+    def generate(self, report: EvaluationReport) -> str:
         """Generate a terminal report string.
 
         Note: This returns the plain-text representation. For rich
@@ -97,7 +97,7 @@ class TerminalReport(ReportGenerator):
 
         return "\n".join(lines)
 
-    def generate_to_file(self, report: Any, output_path: Path | str) -> Path:
+    def generate_to_file(self, report: EvaluationReport, output_path: Path | str) -> Path:
         """Generate terminal report and write to file.
 
         Args:
@@ -117,7 +117,7 @@ class TerminalReport(ReportGenerator):
         path.write_text(content, encoding="utf-8")
         return path
 
-    def print_report(self, report: Any) -> None:
+    def print_report(self, report: EvaluationReport) -> None:
         """Print a rich-formatted report to the console.
 
         Args:
