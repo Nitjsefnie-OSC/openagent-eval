@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC
 
 import pytest
 
@@ -71,6 +72,13 @@ class TestAuditReport:
         assert report.health_score == 1.0
         assert len(report.issues) == 0
         assert report.healthy is True
+
+    def test_default_timestamp_is_timezone_aware_utc(self):
+        """AuditReport timestamps should be UTC-aware for staleness comparisons."""
+        report = AuditReport(corpus_path="/test/corpus", total_documents=1)
+
+        assert report.timestamp.tzinfo is not None
+        assert report.timestamp.tzinfo == UTC
 
     def test_report_with_issues(self):
         """Test report with issues affects health score."""

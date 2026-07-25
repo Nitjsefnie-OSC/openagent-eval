@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -68,7 +68,7 @@ class AuditReport(BaseModel):
     issues: list[CorpusIssue] = Field(default_factory=list)
     health_score: float = Field(ge=0.0, le=1.0, default=1.0)
     checks_performed: list[str] = Field(default_factory=list)
-    timestamp: datetime = Field(default_factory=datetime.now)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     summary: str = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
 
