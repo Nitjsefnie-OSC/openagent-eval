@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
 from openagent_eval.corpus.contradiction import ContradictionDetector
@@ -18,6 +20,32 @@ class MockLLMProvider:
     async def generate(self, prompt: str) -> str:
         self.calls.append(prompt)
         return self.response
+
+
+class ConcurrencyTrackingLLMProvider:
+    """Tracks maximum concurrent LLM requests."""
+
+    def __init__(self) -> None:
+        self.active_calls = 0
+        self.max_active_calls = 0
+
+    async def generate(self, prompt: str) -> str:
+        self.active_calls += 1
+        self.max_active_calls = max(
+            self.max_active_calls,
+            self.active_calls,
+        )
+
+        await asyncio.sleep(0.01)
+
+        self.active_calls -= 1
+
+        return (
+            '{"contradicts": false, '
+            '"confidence": 0.1, '
+            '"topic": "test", '
+            '"explanation": "No contradiction"}'
+        )
 
 
 class TestContradictionDetector:
@@ -150,7 +178,10 @@ class TestContradictionDetector:
         ]
 
         report = await detector.analyze(docs)
-        assert "contradiction" in report.summary.lower() or "no contradictions" in report.summary.lower()
+        assert (
+            "contradiction" in report.summary.lower()
+            or "no contradictions" in report.summary.lower()
+        )
 
     @pytest.mark.asyncio
     async def test_health_score_computation(self, detector_no_llm):
@@ -166,3 +197,29 @@ class TestContradictionDetector:
         # Some issues = reduced score
         score = detector_no_llm._compute_health_score(10, 5)
         assert score < 1.0
+
+    @pytest.mark.asyncio
+    async def test_limits_concurrent_llm_requests(self):
+        """Ensure contradiction detection limits concurrent LLM requests."""
+
+        llm = ConcurrencyTrackingLLMProvider()
+        detector = ContradictionDetector(
+            llm_provider=llm,
+            max_pairs=20,
+        )
+
+        docs = [
+            CorpusDocument(
+                doc_id=f"doc{i}.txt",
+                content=(
+                    "Python programming language supports machine learning "
+                    f"applications and data science version {i}"
+                ),
+            )
+            for i in range(8)
+        ]
+
+        await detector.analyze(docs)
+
+        assert llm.max_active_calls <= 5
+        assert llm.max_active_calls > 1
