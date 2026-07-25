@@ -222,4 +222,4 @@ class TestContradictionDetector:
         await detector.analyze(docs)
 
         assert llm.max_active_calls <= 5
-        assert llm.max_active_calls > 1
+        assert 1 < llm.max_active_calls <= detector.max_concurrency
