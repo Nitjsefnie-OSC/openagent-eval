@@ -1,0 +1,9 @@
+# Requirements for the end-to-end tutorial (examples/end-to-end-tutorial/).
+#
+# openagent-eval[providers] pulls in google-genai (Gemini), plus the openai/
+# anthropic/groq SDKs the provider factory imports unconditionally.
+# sentence-transformers is the local, free, CPU-only embedding backend used
+# by the tutorial's `retriever.embedder`.
+openagent-eval[providers]>=0.4.8
+sentence-transformers>=2.2.0
+jupyter>=1.0.0

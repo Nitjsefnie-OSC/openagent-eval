@@ -1,0 +1,55 @@
+# config.yaml — free-tier, local-embeddings example for the end-to-end tutorial.
+#
+# LLM: Google Gemini (free tier: 15 requests/minute, 1M tokens/day). Get a key
+# at https://aistudio.google.com/apikey and export it before running:
+#   export GEMINI_API_KEY="your-key-here"
+#
+# `api_key` is intentionally NOT set below. When it is omitted, the Gemini
+# provider falls back to the GEMINI_API_KEY environment variable on its own
+# (see openagent_eval/providers/llm/gemini.py) — never put a real key in this
+# file or commit one.
+
+dataset:
+  path: data/sample_qa.json
+  format: json
+  limit: 6   # keep the live Gemini call count small and friendly to the free tier;
+             # drop this line (or raise it) to evaluate the full 16-item dataset
+
+llm:
+  provider: gemini
+  model: gemini-2.5-flash-lite   # free tier; see README for why not gemini-2.5-flash
+  temperature: 0.0
+
+retriever:
+  provider: memory       # process-local, no external vector DB needed
+  settings:
+    documents_path: data/corpus.json
+    k: 3
+  embedder:
+    provider: sentence_transformers   # local, free, CPU-only
+    model: all-MiniLM-L6-v2
+
+metrics:
+  retrieval:
+    - context_precision
+    - context_recall
+    - mrr
+  generation:
+    - faithfulness
+    - answer_relevancy
+    - exact_match
+    - f1_score
+  performance:
+    - latency
+  cost:
+    - token_count
+
+report:
+  output: markdown
+  output_dir: reports
+
+# Sequential, not parallel: the free Gemini tier caps out at 15 requests per
+# minute, and concurrent requests were observed to trip transient 503s under
+# load in this environment. One request in flight at a time keeps every call
+# well under the limit for a 16-item dataset like this one.
+parallel: false
