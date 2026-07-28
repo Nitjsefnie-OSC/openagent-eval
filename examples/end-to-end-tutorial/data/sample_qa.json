@@ -1,0 +1,178 @@
+[
+  {
+    "question": "How do I open a temporary, in-memory-only SQLite database in Python?",
+    "ground_truth": "Call sqlite3.connect(':memory:'), which opens a private database that lives only in RAM and disappears when the connection is closed.",
+    "context": "The sqlite3 module's connect() function opens a connection to an SQLite database file, creating it if it does not already exist. Calling sqlite3.connect(':memory:') instead opens a temporary, private database that lives only in RAM for the lifetime of that connection and disappears when it is closed.",
+    "metadata": {
+      "source_id": "sqlite3-connect"
+    },
+    "ground_truth_contexts": [
+      "The sqlite3 module's connect() function opens a connection to an SQLite database file, creating it if it does not already exist. Calling sqlite3.connect(':memory:') instead opens a temporary, private database that lives only in RAM for the lifetime of that connection and disappears when it is closed."
+    ]
+  },
+  {
+    "question": "What Cursor methods do I use to read back rows after running a SELECT?",
+    "ground_truth": "cursor.fetchone() for a single row, cursor.fetchmany(size) for a batch, or cursor.fetchall() for every remaining row.",
+    "context": "A Cursor object, created with connection.cursor(), is used to run SQL statements via cursor.execute(sql, parameters) and to read back results afterwards with cursor.fetchone() (one row), cursor.fetchmany(size) (a batch), or cursor.fetchall() (every remaining row).",
+    "metadata": {
+      "source_id": "sqlite3-cursor"
+    },
+    "ground_truth_contexts": [
+      "A Cursor object, created with connection.cursor(), is used to run SQL statements via cursor.execute(sql, parameters) and to read back results afterwards with cursor.fetchone() (one row), cursor.fetchmany(size) (a batch), or cursor.fetchall() (every remaining row)."
+    ]
+  },
+  {
+    "question": "Why do '?' placeholders in cursor.execute() protect against SQL injection?",
+    "ground_truth": "Because parameter values are sent to SQLite separately from the SQL text, so untrusted input can never be interpreted as SQL syntax.",
+    "context": "sqlite3 supports parameterized queries using '?' placeholders, for example cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,)). Values passed this way are sent separately from the SQL text, so untrusted input can never be interpreted as SQL syntax, which is what prevents SQL injection.",
+    "metadata": {
+      "source_id": "sqlite3-params"
+    },
+    "ground_truth_contexts": [
+      "sqlite3 supports parameterized queries using '?' placeholders, for example cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,)). Values passed this way are sent separately from the SQL text, so untrusted input can never be interpreted as SQL syntax, which is what prevents SQL injection."
+    ]
+  },
+  {
+    "question": "What happens if an exception is raised inside a 'with connection:' block in sqlite3?",
+    "ground_truth": "The transaction is automatically rolled back; on success it is automatically committed instead.",
+    "context": "Changes written to an SQLite database are not persisted until connection.commit() is called, and connection.rollback() discards any changes made since the last commit. Using the connection itself as a context manager, 'with connection:', automatically commits the block on success or rolls it back if an exception propagates out of the block.",
+    "metadata": {
+      "source_id": "sqlite3-commit"
+    },
+    "ground_truth_contexts": [
+      "Changes written to an SQLite database are not persisted until connection.commit() is called, and connection.rollback() discards any changes made since the last commit. Using the connection itself as a context manager, 'with connection:', automatically commits the block on success or rolls it back if an exception propagates out of the block."
+    ]
+  },
+  {
+    "question": "What is the recommended way to bulk-insert many rows with sqlite3?",
+    "ground_truth": "Use cursor.executemany(sql, seq_of_parameters) to run the same parameterized statement once per tuple, rather than looping over cursor.execute().",
+    "context": "cursor.executemany(sql, seq_of_parameters) runs the same parameterized SQL statement once for every tuple in seq_of_parameters. This is the recommended way to perform a bulk insert, since it avoids the overhead of calling cursor.execute() separately in a Python loop.",
+    "metadata": {
+      "source_id": "sqlite3-executemany"
+    },
+    "ground_truth_contexts": [
+      "cursor.executemany(sql, seq_of_parameters) runs the same parameterized SQL statement once for every tuple in seq_of_parameters. This is the recommended way to perform a bulk insert, since it avoids the overhead of calling cursor.execute() separately in a Python loop."
+    ]
+  },
+  {
+    "question": "What does setting connection.row_factory = sqlite3.Row change about query results?",
+    "ground_truth": "Rows support dictionary-style access by column name (row['name']) in addition to the usual tuple-style access by position (row[0]).",
+    "context": "Setting connection.row_factory = sqlite3.Row changes query results so each row supports both dictionary-style access by column name (row['name']) and the usual tuple-style access by position (row[0]), without changing anything else about how queries are written.",
+    "metadata": {
+      "source_id": "sqlite3-row-factory"
+    },
+    "ground_truth_contexts": [
+      "Setting connection.row_factory = sqlite3.Row changes query results so each row supports both dictionary-style access by column name (row['name']) and the usual tuple-style access by position (row[0]), without changing anything else about how queries are written."
+    ]
+  },
+  {
+    "question": "Which exception does sqlite3 raise when an INSERT violates a UNIQUE constraint?",
+    "ground_truth": "sqlite3.IntegrityError, and the offending row is not written.",
+    "context": "sqlite3.IntegrityError is raised when an SQL statement would violate a database constraint, for example inserting a value that already exists in a column declared UNIQUE or as a PRIMARY KEY. The insert or update that triggered the violation is rejected and no row is written.",
+    "metadata": {
+      "source_id": "sqlite3-integrity-error"
+    },
+    "ground_truth_contexts": [
+      "sqlite3.IntegrityError is raised when an SQL statement would violate a database constraint, for example inserting a value that already exists in a column declared UNIQUE or as a PRIMARY KEY. The insert or update that triggered the violation is rejected and no row is written."
+    ]
+  },
+  {
+    "question": "How do I put a sqlite3 connection into autocommit mode?",
+    "ground_truth": "Set isolation_level=None (either at connect() time or on the Connection object), which makes statements take effect immediately with no open transaction.",
+    "context": "The Connection object's isolation_level attribute controls sqlite3's implicit transaction handling. Setting isolation_level=None switches the connection to autocommit mode, so statements take effect immediately and the connection never reports being inside an open transaction, unlike the default deferred-transaction behavior.",
+    "metadata": {
+      "source_id": "sqlite3-isolation-level"
+    },
+    "ground_truth_contexts": [
+      "The Connection object's isolation_level attribute controls sqlite3's implicit transaction handling. Setting isolation_level=None switches the connection to autocommit mode, so statements take effect immediately and the connection never reports being inside an open transaction, unlike the default deferred-transaction behavior."
+    ]
+  },
+  {
+    "question": "Are foreign key constraints enforced by default in a new sqlite3 connection?",
+    "ground_truth": "No. 'PRAGMA foreign_keys' reports 0 (off) by default and must be turned on explicitly with 'PRAGMA foreign_keys = ON'.",
+    "context": "SQLite does not enforce foreign key constraints by default; a fresh sqlite3 connection reports 'PRAGMA foreign_keys' as 0 (off). Enforcement must be turned on explicitly per connection with the statement 'PRAGMA foreign_keys = ON', because it was left disabled by default for backward compatibility with older databases.",
+    "metadata": {
+      "source_id": "sqlite3-foreign-keys"
+    },
+    "ground_truth_contexts": [
+      "SQLite does not enforce foreign key constraints by default; a fresh sqlite3 connection reports 'PRAGMA foreign_keys' as 0 (off). Enforcement must be turned on explicitly per connection with the statement 'PRAGMA foreign_keys = ON', because it was left disabled by default for backward compatibility with older databases."
+    ]
+  },
+  {
+    "question": "How can I run a whole schema of several CREATE TABLE statements in one call?",
+    "ground_truth": "Pass them all, semicolon-separated, to cursor.executescript(sql_script).",
+    "context": "cursor.executescript(sql_script) executes multiple semicolon-separated SQL statements in a single call, which makes it convenient for running a whole schema definition at once, such as several CREATE TABLE statements followed by seed INSERT statements.",
+    "metadata": {
+      "source_id": "sqlite3-executescript"
+    },
+    "ground_truth_contexts": [
+      "cursor.executescript(sql_script) executes multiple semicolon-separated SQL statements in a single call, which makes it convenient for running a whole schema definition at once, such as several CREATE TABLE statements followed by seed INSERT statements."
+    ]
+  },
+  {
+    "question": "How do I get the primary key of a row I just inserted with cursor.execute()?",
+    "ground_truth": "Read cursor.lastrowid immediately after the INSERT; it holds the row id SQLite assigned to that row.",
+    "context": "After a single-row INSERT run through cursor.execute(), cursor.lastrowid holds the integer row id that SQLite assigned to the row that was just inserted. This makes it easy to obtain the primary key of a newly created record without issuing a separate SELECT statement.",
+    "metadata": {
+      "source_id": "sqlite3-lastrowid"
+    },
+    "ground_truth_contexts": [
+      "After a single-row INSERT run through cursor.execute(), cursor.lastrowid holds the integer row id that SQLite assigned to the row that was just inserted. This makes it easy to obtain the primary key of a newly created record without issuing a separate SELECT statement."
+    ]
+  },
+  {
+    "question": "How do I let a sqlite3 connection be used from a thread other than the one that created it?",
+    "ground_truth": "Pass check_same_thread=False to sqlite3.connect(), which disables the default same-thread safety check.",
+    "context": "By default, a sqlite3 Connection object may only be used by the thread that created it; sqlite3.connect() accepts check_same_thread=False to disable that safety check when the caller has another way of guaranteeing the connection is not accessed concurrently from multiple threads.",
+    "metadata": {
+      "source_id": "sqlite3-check-same-thread"
+    },
+    "ground_truth_contexts": [
+      "By default, a sqlite3 Connection object may only be used by the thread that created it; sqlite3.connect() accepts check_same_thread=False to disable that safety check when the caller has another way of guaranteeing the connection is not accessed concurrently from multiple threads."
+    ]
+  },
+  {
+    "question": "How can I read the column names of a SELECT result without hard-coding them?",
+    "ground_truth": "After executing the SELECT, read cursor.description; the first element of each entry is that column's name.",
+    "context": "After a SELECT statement has been executed, cursor.description holds a tuple of 7-element tuples, one per selected column; the first element of each is the column's name. This is a convenient way to read back column names without hard-coding them, for example when printing a result table.",
+    "metadata": {
+      "source_id": "sqlite3-cursor-description"
+    },
+    "ground_truth_contexts": [
+      "After a SELECT statement has been executed, cursor.description holds a tuple of 7-element tuples, one per selected column; the first element of each is the column's name. This is a convenient way to read back column names without hard-coding them, for example when printing a result table."
+    ]
+  },
+  {
+    "question": "Does 'with sqlite3.connect(...) as conn:' close the connection when the block exits?",
+    "ground_truth": "No. The with-block only commits or rolls back the transaction; conn.close() must still be called explicitly to release the connection.",
+    "context": "Opening a connection with 'with sqlite3.connect(...) as conn:' does not close the connection when the block exits \u2014 the with-block only commits the transaction on success or rolls it back on an exception. The connection stays open afterwards, so conn.close() must still be called explicitly to release it.",
+    "metadata": {
+      "source_id": "sqlite3-context-manager"
+    },
+    "ground_truth_contexts": [
+      "Opening a connection with 'with sqlite3.connect(...) as conn:' does not close the connection when the block exits \u2014 the with-block only commits the transaction on success or rolls it back on an exception. The connection stays open afterwards, so conn.close() must still be called explicitly to release it."
+    ]
+  },
+  {
+    "question": "What does running the SQL command VACUUM do to a SQLite database file?",
+    "ground_truth": "It rebuilds the whole file, repacking it into the minimum disk space and defragmenting it, which reclaims space left behind after deletes.",
+    "context": "Running the SQL command 'VACUUM' rebuilds the entire database file, repacking it into the minimum amount of disk space and defragmenting it. This is typically used to reclaim space after a large number of rows have been deleted, since SQLite does not automatically shrink the file on every delete.",
+    "metadata": {
+      "source_id": "sqlite3-vacuum"
+    },
+    "ground_truth_contexts": [
+      "Running the SQL command 'VACUUM' rebuilds the entire database file, repacking it into the minimum amount of disk space and defragmenting it. This is typically used to reclaim space after a large number of rows have been deleted, since SQLite does not automatically shrink the file on every delete."
+    ]
+  },
+  {
+    "question": "What does detect_types=sqlite3.PARSE_DECLTYPES do, and is it still recommended?",
+    "ground_truth": "It makes sqlite3 automatically convert column values (e.g. to datetime.date) based on the declared column type, but as of Python 3.12 the built-in adapters/converters it relies on are deprecated in favor of registering explicit ones.",
+    "context": "Passing detect_types=sqlite3.PARSE_DECLTYPES to sqlite3.connect() makes the module automatically convert column values into richer Python types, such as datetime.date, based on the declared column type in the CREATE TABLE statement. As of Python 3.12 the built-in default date/datetime adapters and converters that make this work are deprecated in favor of registering explicit adapters.",
+    "metadata": {
+      "source_id": "sqlite3-detect-types"
+    },
+    "ground_truth_contexts": [
+      "Passing detect_types=sqlite3.PARSE_DECLTYPES to sqlite3.connect() makes the module automatically convert column values into richer Python types, such as datetime.date, based on the declared column type in the CREATE TABLE statement. As of Python 3.12 the built-in default date/datetime adapters and converters that make this work are deprecated in favor of registering explicit adapters."
+    ]
+  }
+]
