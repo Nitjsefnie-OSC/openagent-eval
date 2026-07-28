@@ -1,0 +1,78 @@
+[
+  {
+    "id": "sqlite3-connect",
+    "content": "The sqlite3 module's connect() function opens a connection to an SQLite database file, creating it if it does not already exist. Calling sqlite3.connect(':memory:') instead opens a temporary, private database that lives only in RAM for the lifetime of that connection and disappears when it is closed."
+  },
+  {
+    "id": "sqlite3-cursor",
+    "content": "A Cursor object, created with connection.cursor(), is used to run SQL statements via cursor.execute(sql, parameters) and to read back results afterwards with cursor.fetchone() (one row), cursor.fetchmany(size) (a batch), or cursor.fetchall() (every remaining row)."
+  },
+  {
+    "id": "sqlite3-params",
+    "content": "sqlite3 supports parameterized queries using '?' placeholders, for example cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,)). Values passed this way are sent separately from the SQL text, so untrusted input can never be interpreted as SQL syntax, which is what prevents SQL injection."
+  },
+  {
+    "id": "sqlite3-commit",
+    "content": "Changes written to an SQLite database are not persisted until connection.commit() is called, and connection.rollback() discards any changes made since the last commit. Using the connection itself as a context manager, 'with connection:', automatically commits the block on success or rolls it back if an exception propagates out of the block."
+  },
+  {
+    "id": "sqlite3-executemany",
+    "content": "cursor.executemany(sql, seq_of_parameters) runs the same parameterized SQL statement once for every tuple in seq_of_parameters. This is the recommended way to perform a bulk insert, since it avoids the overhead of calling cursor.execute() separately in a Python loop."
+  },
+  {
+    "id": "sqlite3-row-factory",
+    "content": "Setting connection.row_factory = sqlite3.Row changes query results so each row supports both dictionary-style access by column name (row['name']) and the usual tuple-style access by position (row[0]), without changing anything else about how queries are written."
+  },
+  {
+    "id": "sqlite3-integrity-error",
+    "content": "sqlite3.IntegrityError is raised when an SQL statement would violate a database constraint, for example inserting a value that already exists in a column declared UNIQUE or as a PRIMARY KEY. The insert or update that triggered the violation is rejected and no row is written."
+  },
+  {
+    "id": "sqlite3-isolation-level",
+    "content": "The Connection object's isolation_level attribute controls sqlite3's implicit transaction handling. Setting isolation_level=None switches the connection to autocommit mode, so statements take effect immediately and the connection never reports being inside an open transaction, unlike the default deferred-transaction behavior."
+  },
+  {
+    "id": "sqlite3-foreign-keys",
+    "content": "SQLite does not enforce foreign key constraints by default; a fresh sqlite3 connection reports 'PRAGMA foreign_keys' as 0 (off). Enforcement must be turned on explicitly per connection with the statement 'PRAGMA foreign_keys = ON', because it was left disabled by default for backward compatibility with older databases."
+  },
+  {
+    "id": "sqlite3-executescript",
+    "content": "cursor.executescript(sql_script) executes multiple semicolon-separated SQL statements in a single call, which makes it convenient for running a whole schema definition at once, such as several CREATE TABLE statements followed by seed INSERT statements."
+  },
+  {
+    "id": "sqlite3-lastrowid",
+    "content": "After a single-row INSERT run through cursor.execute(), cursor.lastrowid holds the integer row id that SQLite assigned to the row that was just inserted. This makes it easy to obtain the primary key of a newly created record without issuing a separate SELECT statement."
+  },
+  {
+    "id": "sqlite3-check-same-thread",
+    "content": "By default, a sqlite3 Connection object may only be used by the thread that created it; sqlite3.connect() accepts check_same_thread=False to disable that safety check when the caller has another way of guaranteeing the connection is not accessed concurrently from multiple threads."
+  },
+  {
+    "id": "sqlite3-cursor-description",
+    "content": "After a SELECT statement has been executed, cursor.description holds a tuple of 7-element tuples, one per selected column; the first element of each is the column's name. This is a convenient way to read back column names without hard-coding them, for example when printing a result table."
+  },
+  {
+    "id": "sqlite3-context-manager",
+    "content": "Opening a connection with 'with sqlite3.connect(...) as conn:' does not close the connection when the block exits — the with-block only commits the transaction on success or rolls it back on an exception. The connection stays open afterwards, so conn.close() must still be called explicitly to release it."
+  },
+  {
+    "id": "sqlite3-vacuum",
+    "content": "Running the SQL command 'VACUUM' rebuilds the entire database file, repacking it into the minimum amount of disk space and defragmenting it. This is typically used to reclaim space after a large number of rows have been deleted, since SQLite does not automatically shrink the file on every delete."
+  },
+  {
+    "id": "sqlite3-detect-types",
+    "content": "Passing detect_types=sqlite3.PARSE_DECLTYPES to sqlite3.connect() makes the module automatically convert column values into richer Python types, such as datetime.date, based on the declared column type in the CREATE TABLE statement. As of Python 3.12 the built-in default date/datetime adapters and converters that make this work are deprecated in favor of registering explicit adapters."
+  },
+  {
+    "id": "python-csv-distractor",
+    "content": "The csv module's csv.reader() and csv.writer() functions handle reading and writing comma-separated value files, including quoting and delimiter edge cases, without requiring the caller to hand-parse each line."
+  },
+  {
+    "id": "python-argparse-distractor",
+    "content": "The argparse module builds command-line interfaces by declaring arguments with parser.add_argument() and then calling parser.parse_args(), which also auto-generates a --help message from the declared arguments."
+  },
+  {
+    "id": "python-json-distractor",
+    "content": "The json module's json.dumps() and json.loads() functions convert between Python objects and JSON-formatted strings, and json.dump()/json.load() do the same directly against a file object."
+  }
+]
