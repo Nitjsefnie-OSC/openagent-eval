@@ -11,6 +11,7 @@ registry. Each item is evaluated independently so the loop can run in parallel.
 
 from __future__ import annotations
 
+import inspect
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -65,6 +66,7 @@ class Pipeline:
         self._metrics: list[tuple[str, BaseMetric]] = metrics or []
         self._executor = executor
         self._k = self._resolve_k()
+        self._retriever_supports_ground_truth_contexts: bool | None = None
 
     # ------------------------------------------------------------------ #
     # Public API                                                          #
@@ -121,8 +123,13 @@ class Pipeline:
 
             # 3. Metrics
             metrics, metric_errors = self._run_metrics(
-                question, answer, ground_truth, contexts, gt_contexts,
-                latency_ms, token_usage,
+                question,
+                answer,
+                ground_truth,
+                contexts,
+                gt_contexts,
+                latency_ms,
+                token_usage,
             )
 
             return EvaluationResult(
@@ -134,7 +141,9 @@ class Pipeline:
                 metadata={
                     "latency_ms": latency_ms,
                     "prompt_tokens": token_usage.prompt_tokens if token_usage else None,
-                    "completion_tokens": token_usage.completion_tokens if token_usage else None,
+                    "completion_tokens": token_usage.completion_tokens
+                    if token_usage
+                    else None,
                     "total_tokens": token_usage.total_tokens if token_usage else None,
                     "metric_errors": metric_errors,
                     **item.get("metadata", {}),
@@ -161,13 +170,51 @@ class Pipeline:
     # Steps                                                               #
     # ------------------------------------------------------------------ #
 
+    def _supports_ground_truth_contexts(self) -> bool:
+        """Return whether the injected retriever accepts ``ground_truth_contexts``.
+
+        The result is cached on the pipeline instance because it is computed
+        with reflection and must not run inside the per-item retrieval hot loop.
+        A retriever is treated as supporting the parameter if its bound
+        ``retrieve`` method has a parameter named ``ground_truth_contexts`` or
+        accepts arbitrary keyword arguments (``**kwargs``).
+        """
+        if self._retriever_supports_ground_truth_contexts is not None:
+            return self._retriever_supports_ground_truth_contexts
+
+        if self._retriever is None:
+            self._retriever_supports_ground_truth_contexts = False
+            return False
+
+        retrieve_method = getattr(self._retriever, "retrieve", None)
+        if retrieve_method is None:
+            self._retriever_supports_ground_truth_contexts = False
+            return False
+
+        try:
+            sig = inspect.signature(retrieve_method)
+        except (ValueError, TypeError):
+            self._retriever_supports_ground_truth_contexts = False
+            return False
+
+        for param in sig.parameters.values():
+            if param.kind == inspect.Parameter.VAR_KEYWORD:
+                self._retriever_supports_ground_truth_contexts = True
+                return True
+            if param.name == "ground_truth_contexts":
+                self._retriever_supports_ground_truth_contexts = True
+                return True
+
+        self._retriever_supports_ground_truth_contexts = False
+        return False
+
     async def _retrieve(
         self, question: str, context: str | None, gt_contexts: list[str]
     ) -> list[str]:
         """Retrieve contexts for a question, or fall back to dataset context."""
         if self._retriever is not None:
             try:
-                if getattr(self._retriever, "name", None) == "mock":
+                if self._supports_ground_truth_contexts():
                     docs = await self._retriever.retrieve(
                         question, k=self._k, ground_truth_contexts=gt_contexts
                     )
@@ -193,7 +240,9 @@ class Pipeline:
             return "", None, None
 
         try:
-            response = await self._llm.generate_with_usage(prompt, ground_truth=ground_truth)
+            response = await self._llm.generate_with_usage(
+                prompt, ground_truth=ground_truth
+            )
             return response.content, response.usage, response.latency_ms
         except Exception:
             # Generation failure -> empty answer; metrics will report accordingly.
@@ -221,7 +270,7 @@ class Pipeline:
         prompt_tokens = token_usage.prompt_tokens if token_usage else 0
         completion_tokens = token_usage.completion_tokens if token_usage else 0
         provider_name = getattr(self._llm, "name", None)
-        model_name = getattr(self._llm, "_model", None) or self.config.llm.model
+        model_name = getattr(self._llm, "model_name", None) or self.config.llm.model
 
         for name, metric in self._metrics:
             try:
@@ -293,9 +342,7 @@ class Pipeline:
             if metric_counts[name] > 0
         }
 
-        total_tokens = sum(
-            (r.metadata.get("total_tokens") or 0) for r in results
-        )
+        total_tokens = sum((r.metadata.get("total_tokens") or 0) for r in results)
         latencies = [
             r.metadata.get("latency_ms")
             for r in results

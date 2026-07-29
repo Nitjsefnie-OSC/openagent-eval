@@ -44,6 +44,11 @@ class MockLLMProvider(LLMProvider):
         self._model = getattr(config, "model", model) or model
         self._temperature = getattr(config, "temperature", temperature) or temperature
 
+    @property
+    def model_name(self) -> str | None:
+        """Return the configured mock model identifier."""
+        return self._model
+
     async def generate(self, prompt: str, **kwargs: Any) -> str:
         """Return a deterministic answer without calling any API.
 

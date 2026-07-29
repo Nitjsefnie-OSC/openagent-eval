@@ -102,7 +102,13 @@ class FAISSRetriever(Retriever):
                 original_error=exc,
             ) from exc
 
-    async def retrieve(self, query: str, k: int = 5) -> list[Document]:
+    async def retrieve(
+        self,
+        query: str,
+        k: int = 5,
+        *,
+        ground_truth_contexts: list[str] | None = None,
+    ) -> list[Document]:
         """Embed the query and search the FAISS index."""
         self.validate_inputs(query=query, k=k)
         k = k or self._k
