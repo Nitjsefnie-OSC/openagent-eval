@@ -43,12 +43,22 @@ class Retriever(ABC):
     description: str
 
     @abstractmethod
-    async def retrieve(self, query: str, k: int = 5) -> list[Document]:
+    async def retrieve(
+        self,
+        query: str,
+        k: int = 5,
+        *,
+        ground_truth_contexts: list[str] | None = None,
+    ) -> list[Document]:
         """Retrieve relevant documents for a given query.
 
         Args:
             query: The search query string.
             k: Number of documents to retrieve (default: 5).
+            ground_truth_contexts: Optional ground-truth contexts supplied by the
+                dataset. Retrievers that can use them (e.g. the mock retriever)
+                may return them; retrievers that do not use them must accept and
+                ignore the parameter.
 
         Returns:
             List of Document objects matching the query.

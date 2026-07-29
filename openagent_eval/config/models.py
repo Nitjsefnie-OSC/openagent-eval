@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, SecretStr, field_validator
 
 
 class OutputFormat(str, Enum):
@@ -22,13 +22,15 @@ class LLMConfig(BaseModel):
 
     provider: str = Field(..., description="LLM provider name (e.g., openai, gemini, anthropic)")
     model: str = Field(..., description="Model identifier (e.g., gpt-4o)")
-    api_key: str | None = Field(None, description="API key (can use environment variable)")
+    api_key: SecretStr | None = Field(
+        None, description="API key (can use environment variable)"
+    )
     temperature: float = Field(0.0, ge=0.0, le=2.0, description="Temperature for generation")
     max_tokens: int | None = Field(None, ge=1, description="Maximum tokens to generate")
 
     @field_validator("api_key")
     @classmethod
-    def validate_api_key(cls, v: str | None) -> str | None:
+    def validate_api_key(cls, v: SecretStr | None) -> SecretStr | None:
         """Validate API key format."""
         if v is not None and len(v) < 10:
             raise ValueError("API key appears to be invalid (too short)")

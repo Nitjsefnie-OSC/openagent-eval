@@ -95,7 +95,12 @@ class OpenRouter(LLMProvider):
             ProviderConnectionError: If API key is not provided or found in environment.
         """
         if config is not None:
-            api_key = api_key or getattr(config, "api_key", None)
+            config_api_key = getattr(config, "api_key", None)
+            api_key = api_key or (
+                config_api_key.get_secret_value()
+                if config_api_key is not None
+                else None
+            )
             model = getattr(config, "model", model) or model
             temperature = (
                 getattr(config, "temperature", temperature)
@@ -121,6 +126,11 @@ class OpenRouter(LLMProvider):
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.base_url = base_url.rstrip("/")
+
+    @property
+    def model_name(self) -> str | None:
+        """Return the configured OpenRouter model identifier."""
+        return self.model
 
     async def generate_with_usage(self, prompt: str, **kwargs: Any) -> "LLMResponse":
         """Generate a response and return it with token usage and latency.

@@ -102,7 +102,16 @@ class Groq(LLMProvider):
         """
         # Extract from config if provided
         if config is not None:
-            api_key = api_key or getattr(config, "api_key", None) or os.environ.get("GROQ_API_KEY")
+            config_api_key = getattr(config, "api_key", None)
+            api_key = (
+                api_key
+                or (
+                    config_api_key.get_secret_value()
+                    if config_api_key is not None
+                    else None
+                )
+                or os.environ.get("GROQ_API_KEY")
+            )
             model = getattr(config, "model", model) or model
             temperature = getattr(config, "temperature", temperature) if getattr(config, "temperature", None) is not None else temperature
             max_tokens = getattr(config, "max_tokens", max_tokens) if getattr(config, "max_tokens", None) is not None else max_tokens
@@ -138,6 +147,11 @@ class Groq(LLMProvider):
                 provider_name="groq",
                 original_error=e,
             ) from e
+
+    @property
+    def model_name(self) -> str | None:
+        """Return the configured Groq model identifier."""
+        return self.model
 
     async def generate(self, prompt: str, **kwargs: Any) -> str:
         """Generate a response from the LLM.

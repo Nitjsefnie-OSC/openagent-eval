@@ -108,7 +108,11 @@ class OpenAIProvider(LLMProvider):
             ProviderConnectionError: If API key is not found or invalid.
         """
         if config:
-            self._api_key = config.api_key or os.getenv("OPENAI_API_KEY")
+            self._api_key = (
+                config.api_key.get_secret_value()
+                if config.api_key is not None
+                else os.getenv("OPENAI_API_KEY")
+            )
             self._model = config.model
             self._temperature = config.temperature
             self._max_tokens = config.max_tokens
@@ -135,6 +139,11 @@ class OpenAIProvider(LLMProvider):
 
         self._client = AsyncOpenAI(api_key=self._api_key)
         self._encoding: tiktoken.Encoding | None = None
+
+    @property
+    def model_name(self) -> str | None:
+        """Return the configured OpenAI model identifier."""
+        return self._model
 
     def _get_encoding(self) -> tiktoken.Encoding:
         """Get or create tiktoken encoding for the configured model.

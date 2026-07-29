@@ -121,7 +121,13 @@ class HttpRetriever(Retriever):
         self._score_mode = score_mode
         self._timeout = timeout
 
-    async def retrieve(self, query: str, k: int = 5) -> list[Document]:
+    async def retrieve(
+        self,
+        query: str,
+        k: int = 5,
+        *,
+        ground_truth_contexts: list[str] | None = None,
+    ) -> list[Document]:
         """Send the query to the endpoint and map the response to Documents."""
         self.validate_inputs(query=query, k=k)
 

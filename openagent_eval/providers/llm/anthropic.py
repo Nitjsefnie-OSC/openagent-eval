@@ -99,7 +99,12 @@ class Anthropic(LLMProvider):
                 in environment.
         """
         if config is not None:
-            api_key = api_key or getattr(config, "api_key", None)
+            config_api_key = getattr(config, "api_key", None)
+            api_key = api_key or (
+                config_api_key.get_secret_value()
+                if config_api_key is not None
+                else None
+            )
             model = getattr(config, "model", model) or model
             temperature = (
                 getattr(config, "temperature", temperature)
@@ -138,6 +143,11 @@ class Anthropic(LLMProvider):
             )
 
         self._client = anthropic.AsyncAnthropic(api_key=api_key)
+
+    @property
+    def model_name(self) -> str | None:
+        """Return the configured Anthropic model identifier."""
+        return self.model
 
     async def generate(self, prompt: str, **kwargs: Any) -> str:
         """Generate a response from the LLM.
