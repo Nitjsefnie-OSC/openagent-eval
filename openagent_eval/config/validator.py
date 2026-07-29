@@ -82,7 +82,12 @@ def validate_api_keys(config: Config) -> list[str]:
     provider = config.llm.provider.lower()
     if provider in provider_env_map:
         env_var = provider_env_map[provider]
-        if not config.llm.api_key and not os.environ.get(env_var):
+        resolved_key = (
+            config.llm.api_key.get_secret_value()
+            if config.llm.api_key is not None
+            else None
+        )
+        if not resolved_key and not os.environ.get(env_var):
             missing_keys.append(env_var)
 
     return missing_keys

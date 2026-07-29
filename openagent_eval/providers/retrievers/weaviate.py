@@ -73,7 +73,13 @@ class WeaviateRetriever(Retriever):
                 original_error=exc,
             ) from exc
 
-    async def retrieve(self, query: str, k: int = 5) -> list[Document]:
+    async def retrieve(
+        self,
+        query: str,
+        k: int = 5,
+        *,
+        ground_truth_contexts: list[str] | None = None,
+    ) -> list[Document]:
         """Search the Weaviate collection near the query text."""
         self.validate_inputs(query=query, k=k)
         try:

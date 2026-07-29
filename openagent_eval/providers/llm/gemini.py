@@ -107,7 +107,12 @@ class Gemini(LLMProvider):
                 GEMINI_API_KEY environment variable is not set.
         """
         if config is not None:
-            api_key = api_key or getattr(config, "api_key", None)
+            config_api_key = getattr(config, "api_key", None)
+            api_key = api_key or (
+                config_api_key.get_secret_value()
+                if config_api_key is not None
+                else None
+            )
             model = getattr(config, "model", model) or model
             temperature = (
                 getattr(config, "temperature", temperature)
@@ -149,6 +154,11 @@ class Gemini(LLMProvider):
                 provider_name=self.name,
                 original_error=exc,
             ) from exc
+
+    @property
+    def model_name(self) -> str | None:
+        """Return the configured Gemini model identifier."""
+        return self._model
 
     async def generate_with_usage(self, prompt: str, **kwargs: Any) -> LLMResponse:
         """Generate a response and return it with token usage and latency.

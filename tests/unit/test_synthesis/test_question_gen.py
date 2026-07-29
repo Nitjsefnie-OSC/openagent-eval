@@ -207,3 +207,68 @@ class TestQuestionGenerator:
         assert len(result) == 2
         assert result[0].question == "Q1?"
         assert result[1].question == "Q2?"
+
+    @pytest.mark.asyncio
+    async def test_generate_single_json_object(self) -> None:
+        """Characterization: parser accepts a single JSON object response."""
+        llm_response = '{"question": "Single?", "answer": "Single answer."}'
+        mock_llm = _make_mock_llm(llm_response)
+        gen = QuestionGenerator(mock_llm)
+
+        result = await gen.generate(context="Test.", count=1)
+
+        assert len(result) == 1
+        assert result[0].question == "Single?"
+        assert result[0].ground_truth == "Single answer."
+
+    @pytest.mark.asyncio
+    async def test_generate_concatenated_json_objects(self) -> None:
+        """Characterization: parser accepts concatenated JSON objects."""
+        llm_response = (
+            '{"question": "Q1?", "answer": "A1."}'
+            '{"question": "Q2?", "answer": "A2."}'
+        )
+        mock_llm = _make_mock_llm(llm_response)
+        gen = QuestionGenerator(mock_llm)
+
+        result = await gen.generate(context="Test.", count=2)
+
+        assert len(result) == 2
+        assert result[0].question == "Q1?"
+        assert result[1].question == "Q2?"
+
+    @pytest.mark.asyncio
+    async def test_generate_regex_tier_with_nested_braces(self) -> None:
+        """Characterization: parser falls back to regex tier for nested braces."""
+        llm_response = '{"question": "Q?", "answer": "{nested}"}'
+        mock_llm = _make_mock_llm(llm_response)
+        gen = QuestionGenerator(mock_llm)
+
+        result = await gen.generate(context="Test.", count=1)
+
+        assert len(result) == 1
+        assert result[0].question == "Q?"
+        assert result[0].ground_truth == "{nested}"
+
+    @pytest.mark.asyncio
+    async def test_generate_final_fallback_tier(self) -> None:
+        """Characterization: parser uses final fallback for loose Q/A patterns."""
+        llm_response = 'Here is a question:\n"question": "Fallback?"\n"answer": "Fallback answer."'
+        mock_llm = _make_mock_llm(llm_response)
+        gen = QuestionGenerator(mock_llm)
+
+        result = await gen.generate(context="Test.", count=1)
+
+        assert len(result) == 1
+        assert result[0].question == "Fallback?"
+        assert result[0].ground_truth == "Fallback answer."
+
+    @pytest.mark.asyncio
+    async def test_generate_rejects_empty_answer_single_object(self) -> None:
+        """Characterization: question_gen rejects a single object with empty answer."""
+        llm_response = '{"question": "Q?", "answer": ""}'
+        mock_llm = _make_mock_llm(llm_response)
+        gen = QuestionGenerator(mock_llm)
+
+        with pytest.raises(SynthesisExecutionError, match="Failed to parse"):
+            await gen.generate(context="Test.", count=1)

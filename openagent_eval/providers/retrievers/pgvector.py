@@ -88,7 +88,13 @@ class PGVectorRetriever(Retriever):
                 original_error=exc,
             ) from exc
 
-    async def retrieve(self, query: str, k: int = 5) -> list[Document]:
+    async def retrieve(
+        self,
+        query: str,
+        k: int = 5,
+        *,
+        ground_truth_contexts: list[str] | None = None,
+    ) -> list[Document]:
         """Embed the query and run a similarity SQL query."""
         self.validate_inputs(query=query, k=k)
 
