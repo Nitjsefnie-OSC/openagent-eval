@@ -91,10 +91,17 @@ async def test_pipeline_uses_public_model_name_property() -> None:
 
     llm = _FakeLLMProvider(model_name=provider_model)
     capture_metric = _ModelNameCapturingMetric()
-    pipeline = Pipeline(config, llm=llm, metrics=[("model_name_capture", capture_metric)])
+    pipeline = Pipeline(
+        config, llm=llm, metrics=[("model_name_capture", capture_metric)]
+    )
 
     await pipeline.execute(
-        [{"question": "What is RAG?", "ground_truth": "RAG is retrieval augmented generation."}]
+        [
+            {
+                "question": "What is RAG?",
+                "ground_truth": "RAG is retrieval augmented generation.",
+            }
+        ]
     )
 
     assert capture_metric.captured_model == provider_model
