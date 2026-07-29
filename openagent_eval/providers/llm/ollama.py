@@ -145,6 +145,11 @@ class Ollama(LLMProvider):
             headers={"Content-Type": "application/json"},
         )
 
+    @property
+    def model_name(self) -> str | None:
+        """Return the configured Ollama model identifier."""
+        return self._model
+
     async def generate(self, prompt: str, **kwargs: Any) -> str:
         """Generate a response from the Ollama model.
 

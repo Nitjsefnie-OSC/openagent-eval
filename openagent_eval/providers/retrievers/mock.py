@@ -30,7 +30,14 @@ class MockRetriever(Retriever):
         """
         self.collection_name = collection_name
 
-    async def retrieve(self, query: str, k: int = 5, **kwargs: Any) -> list[Document]:
+    async def retrieve(
+        self,
+        query: str,
+        k: int = 5,
+        *,
+        ground_truth_contexts: list[str] | None = None,
+        **kwargs: Any,
+    ) -> list[Document]:
         """Return retrieved documents without a vector store.
 
         Args:
@@ -44,8 +51,7 @@ class MockRetriever(Retriever):
         """
         self.validate_inputs(query=query, k=k)
 
-        gt_contexts = kwargs.get("ground_truth_contexts")
-        if gt_contexts:
+        if ground_truth_contexts:
             return [
                 Document(
                     content=ctx,
@@ -53,7 +59,7 @@ class MockRetriever(Retriever):
                     score=1.0,
                     id=f"gt-{i}",
                 )
-                for i, ctx in enumerate(gt_contexts[:k])
+                for i, ctx in enumerate(ground_truth_contexts[:k])
             ]
 
         docs: list[Document] = []

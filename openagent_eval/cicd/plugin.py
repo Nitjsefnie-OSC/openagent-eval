@@ -24,11 +24,10 @@ Usage via pytest plugin:
 from __future__ import annotations
 
 import asyncio
+import sys
 import time
 from pathlib import Path
 from typing import Any, Generator
-
-import pytest
 
 from openagent_eval.cicd.models import CICDConfig, EvaluationGate, ThresholdConfig
 from openagent_eval.cicd.thresholds import EvaluationResult, ThresholdEvaluator
@@ -89,6 +88,8 @@ def pytest_collection_modifyitems(
     config: pytest.Config, items: list[pytest.Item]
 ) -> None:
     """Modify collected items to add OpenAgent Eval markers."""
+    import pytest
+
     for item in items:
         if "oaeval" in item.keywords:
             item.add_marker(pytest.mark.oaeval)
@@ -263,13 +264,20 @@ def pytest_runtest_makereport(
         report.oaeval_result = item._oaeval_result  # type: ignore[attr-defined]
 
 
-@pytest.hookimpl(tryfirst=True)
 def pytest_runtest_setup(item: pytest.Item) -> None:
     """Setup hook for OpenAgent Eval tests."""
     # Check if this is an oaeval test
     if "oaeval" in item.keywords:
         # Mark as oaeval test
         item._is_oaeval_test = True  # type: ignore[attr-defined]
+
+
+# Apply pytest hook decorator only when pytest is available.  This keeps the
+# module importable on clean installs that do not include pytest.
+if sys.modules.get("pytest") is not None:
+    import pytest
+
+    pytest_runtest_setup = pytest.hookimpl(tryfirst=True)(pytest_runtest_setup)
 
 
 def pytest_sessionfinish(

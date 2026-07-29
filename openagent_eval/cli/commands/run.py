@@ -135,11 +135,7 @@ def run_command(
         console=console,
         disable=ctx.quiet,
     ) as progress:
-        task = progress.add_task("Loading configuration...", total=None)
-        config = load_config_from_path(path)
-        apply_output_override(config, output)
-
-        progress.update(task, description="Loading dataset...")
+        task = progress.add_task("Loading dataset...", total=None)
         dataset_items = load_dataset_for_run(config)
         total_items = len(dataset_items)
         progress.update(task, description=f"Loaded {total_items} items")

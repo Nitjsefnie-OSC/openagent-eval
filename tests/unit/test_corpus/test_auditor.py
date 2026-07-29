@@ -95,6 +95,28 @@ class TestCorpusAuditor:
         assert "contradiction" not in report.checks_performed
         assert "duplicate" not in report.checks_performed
 
+    def test_build_analyzers_rejects_unknown_check_names(self):
+        """Unknown check names must raise CorpusValidationError. (issue #56)"""
+        auditor = CorpusAuditor(checks=["staleness", "contradction"])
+
+        with pytest.raises(CorpusValidationError, match="contradction") as exc_info:
+            auditor._build_analyzers()
+
+        message = str(exc_info.value)
+        assert "contradction" in message
+        assert "staleness" in message  # valid name listed
+        assert "contradiction" in message  # valid name listed
+
+    @pytest.mark.asyncio
+    async def test_audit_with_valid_checks_still_works(self, temp_corpus):
+        """A fully valid check list still produces a normal audit report."""
+        auditor = CorpusAuditor(checks=["staleness", "duplicate"])
+        report = await auditor.audit(str(temp_corpus))
+
+        assert report.total_documents == 3
+        assert "staleness" in report.checks_performed
+        assert "duplicate" in report.checks_performed
+
     @pytest.mark.asyncio
     async def test_max_documents_limit(self, tmp_path):
         """Test max documents limit is respected."""

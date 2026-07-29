@@ -155,6 +155,11 @@ class Gemini(LLMProvider):
                 original_error=exc,
             ) from exc
 
+    @property
+    def model_name(self) -> str | None:
+        """Return the configured Gemini model identifier."""
+        return self._model
+
     async def generate_with_usage(self, prompt: str, **kwargs: Any) -> LLMResponse:
         """Generate a response and return it with token usage and latency.
 

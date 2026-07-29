@@ -191,6 +191,79 @@ class TestConfigLoader:
 
         assert "totally_fake_metric" in caplog.text
 
+    # --- Issue #43 regression test ---
+    def test_load_config_legacy_output_does_not_overwrite_report_output(
+        self, tmp_path: Path
+    ) -> None:
+        """Legacy top-level 'output' must not clobber an explicit report.output."""
+        config_dict = {
+            "dataset": {"path": "data.json"},
+            "llm": {"provider": "openai", "model": "gpt-4o"},
+            "report": {"output": "html"},
+            "output": "terminal",
+        }
+        config_path = tmp_path / "legacy_output.yaml"
+        config_path.write_text(yaml.dump(config_dict), encoding="utf-8")
+
+        config = load_config(config_path)
+        assert config.report.output == OutputFormat.HTML
+
+    # --- Issue #44 regression test ---
+    def test_load_config_retrieval_and_retriever_prefers_retriever(
+        self, tmp_path: Path, caplog
+    ) -> None:
+        """When both legacy 'retrieval' and modern 'retriever' exist, retriever
+        wins, retrieval is discarded, and a warning is emitted."""
+        import logging
+
+        config_dict = {
+            "dataset": {"path": "data.json"},
+            "llm": {"provider": "openai", "model": "gpt-4o"},
+            "retrieval": {
+                "provider": "pinecone",
+                "collection_name": "legacy_docs",
+            },
+            "retriever": {"provider": "chroma", "settings": {"collection": "docs"}},
+        }
+        config_path = tmp_path / "both_retrievers.yaml"
+        config_path.write_text(yaml.dump(config_dict), encoding="utf-8")
+
+        with caplog.at_level(logging.WARNING, logger="openagent_eval.config.loader"):
+            config = load_config(config_path)
+
+        assert config.retriever.provider == "chroma"
+        assert config.retriever.settings == {"collection": "docs"}
+        assert "retrieval" not in config.model_dump()
+        assert "Using 'retriever', ignoring 'retrieval'" in caplog.text
+
+    # --- Issue #45 regression test ---
+    def test_load_config_legacy_metrics_deduplicates_aliases(
+        self, tmp_path: Path
+    ) -> None:
+        """Legacy flat metrics list must not contain duplicates after alias
+        normalisation."""
+        config_dict = {
+            "dataset": {"path": "data.json"},
+            "llm": {"provider": "openai", "model": "gpt-4o"},
+            "metrics": ["tokens", "token_count"],
+        }
+        config_path = tmp_path / "duplicate_metrics.yaml"
+        config_path.write_text(yaml.dump(config_dict), encoding="utf-8")
+
+        config = load_config(config_path)
+        assert config.metrics.cost == ["token_count"]
+
+    # --- Issue #48 regression test ---
+    def test_loader_constants_are_module_level(self) -> None:
+        """Legacy metric constants must be defined at module level."""
+        from openagent_eval.config import loader
+
+        assert loader._LEGACY_METRIC_MAP["tokens"] == "token_count"
+        assert "token_count" in loader._COST_METRICS
+        assert "latency" in loader._PERFORMANCE_METRICS
+        assert "context_precision" in loader._RETRIEVAL_METRICS
+        assert "faithfulness" in loader._GENERATION_METRICS
+
 
 class TestCorpusConfigIntegration:
     """Issue #121: the corpus: section is part of the main Config."""

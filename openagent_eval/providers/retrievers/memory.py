@@ -120,7 +120,13 @@ class MemoryRetriever(Retriever):
                 original_error=exc,
             ) from exc
 
-    async def retrieve(self, query: str, k: int = 5) -> list[Document]:
+    async def retrieve(
+        self,
+        query: str,
+        k: int = 5,
+        *,
+        ground_truth_contexts: list[str] | None = None,
+    ) -> list[Document]:
         """Retrieve the ``k`` most similar documents to ``query``.
 
         Args:
