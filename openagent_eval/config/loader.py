@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import yaml
@@ -9,6 +10,36 @@ from pydantic import ValidationError as PydanticValidationError
 
 from openagent_eval.config.models import Config
 from openagent_eval.exceptions import ConfigurationError
+
+logger = logging.getLogger(__name__)
+
+# Legacy metric name translation map.
+_LEGACY_METRIC_MAP: dict[str, str] = {
+    "precision": "context_precision",
+    "recall": "context_recall",
+    "mrr": "mrr",
+    "ndcg": "ndcg",
+    "hit_rate": "hit_rate",
+    "faithfulness": "faithfulness",
+    "relevancy": "answer_relevancy",
+    "hallucination": "hallucination",
+    "similarity": "semantic_similarity",
+    "latency": "latency",
+    "tokens": "token_count",
+}
+
+# Metric classification categories for legacy flat metrics lists.
+_RETRIEVAL_METRICS = frozenset({
+    "context_precision", "context_recall", "recall_at_k",
+    "precision_at_k", "hit_rate", "mrr", "ndcg",
+})
+_GENERATION_METRICS = frozenset({
+    "faithfulness", "answer_relevancy", "hallucination",
+    "semantic_similarity", "exact_match", "f1_score",
+    "bleu", "rouge", "bertscore",
+})
+_PERFORMANCE_METRICS = frozenset({"latency"})
+_COST_METRICS = frozenset({"token_count"})
 
 _FIELD_FORMAT_HINTS = {
     "llm.provider": (
@@ -102,38 +133,16 @@ def load_config(config_path: str | Path) -> Config:
 
         # Handle legacy 'metrics' field (flat list of strings) and translate
         # legacy metric names to the canonical registry names.
-        _LEGACY_METRIC_MAP = {
-            "precision": "context_precision",
-            "recall": "context_recall",
-            "mrr": "mrr",
-            "ndcg": "ndcg",
-            "hit_rate": "hit_rate",
-            "faithfulness": "faithfulness",
-            "relevancy": "answer_relevancy",
-            "hallucination": "hallucination",
-            "similarity": "semantic_similarity",
-            "latency": "latency",
-            "tokens": "token_count",
-        }
         if isinstance(raw_config.get("metrics"), list):
             metrics_list = raw_config.pop("metrics")
-            normalised = [
+            normalised = list(dict.fromkeys(
                 _LEGACY_METRIC_MAP.get(m, m) for m in metrics_list
-            ]
+            ))
             raw_config["metrics"] = {
-                "retrieval": [
-                    m for m in normalised
-                    if m in ("context_precision", "context_recall", "recall_at_k",
-                             "precision_at_k", "hit_rate", "mrr", "ndcg")
-                ],
-                "generation": [
-                    m for m in normalised
-                    if m in ("faithfulness", "answer_relevancy", "hallucination",
-                             "semantic_similarity", "exact_match", "f1_score",
-                             "bleu", "rouge", "bertscore")
-                ],
-                "performance": [m for m in normalised if m in ("latency",)],
-                "cost": [m for m in normalised if m in ("token_count",)],
+                "retrieval": [m for m in normalised if m in _RETRIEVAL_METRICS],
+                "generation": [m for m in normalised if m in _GENERATION_METRICS],
+                "performance": [m for m in normalised if m in _PERFORMANCE_METRICS],
+                "cost": [m for m in normalised if m in _COST_METRICS],
             }
 
             # Surface metrics that were silently dropped (unknown name or typo)
@@ -154,19 +163,26 @@ def load_config(config_path: str | Path) -> Config:
                 )
 
         # Handle legacy 'retrieval' block (provider/collection_name) -> 'retriever'.
-        if "retrieval" in raw_config and "retriever" not in raw_config:
-            retrieval = raw_config.pop("retrieval") or {}
-            provider = retrieval.get("provider") or "chroma"
-            settings = {}
-            if retrieval.get("collection_name"):
-                settings["collection_name"] = retrieval["collection_name"]
-            settings.update(retrieval.get("settings", {}))
-            raw_config["retriever"] = {"provider": provider, "settings": settings}
+        retrieval = raw_config.pop("retrieval", None)
+        if retrieval is not None:
+            if "retriever" in raw_config:
+                logger.warning(
+                    "Both 'retrieval' (legacy) and 'retriever' found in config. "
+                    "Using 'retriever', ignoring 'retrieval'."
+                )
+            else:
+                provider = retrieval.get("provider") or "chroma"
+                settings = {}
+                if retrieval.get("collection_name"):
+                    settings["collection_name"] = retrieval["collection_name"]
+                settings.update(retrieval.get("settings", {}))
+                raw_config["retriever"] = {"provider": provider, "settings": settings}
 
         # Handle legacy 'output' field (string format)
         if isinstance(raw_config.get("output"), str):
             output_format = raw_config.pop("output")
-            raw_config.setdefault("report", {})["output"] = output_format
+            report_block = raw_config.setdefault("report", {})
+            report_block.setdefault("output", output_format)
 
         config = Config(**raw_config)
         return config
