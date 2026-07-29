@@ -108,7 +108,11 @@ class OpenAIProvider(LLMProvider):
             ProviderConnectionError: If API key is not found or invalid.
         """
         if config:
-            self._api_key = config.api_key or os.getenv("OPENAI_API_KEY")
+            self._api_key = (
+                config.api_key.get_secret_value()
+                if config.api_key is not None
+                else os.getenv("OPENAI_API_KEY")
+            )
             self._model = config.model
             self._temperature = config.temperature
             self._max_tokens = config.max_tokens

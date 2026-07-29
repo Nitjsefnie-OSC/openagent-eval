@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from pydantic import SecretStr
 
 from openagent_eval.config.loader import load_config
 from openagent_eval.config.models import (
@@ -50,6 +51,29 @@ class TestConfigModels:
         # Invalid API key (too short)
         with pytest.raises(Exception):
             LLMConfig(provider="openai", model="gpt-4o", api_key="short")
+
+    def test_llm_config_api_key_is_secretstr(self) -> None:
+        """LLMConfig.api_key is stored as a Pydantic SecretStr."""
+        secret = "sk-live-key-1234567890"
+        config = LLMConfig(provider="openai", model="gpt-4o", api_key=secret)
+        assert isinstance(config.api_key, SecretStr)
+        assert config.api_key.get_secret_value() == secret
+
+    def test_llm_config_api_key_not_in_repr(self) -> None:
+        """The API key must not leak through repr() or str()."""
+        secret = "sk-live-key-1234567890"
+        config = LLMConfig(provider="openai", model="gpt-4o", api_key=secret)
+        rendered = repr(config)
+        assert secret not in rendered
+        assert "**********" in rendered
+        assert secret not in str(config)
+
+    def test_llm_config_api_key_round_trip(self) -> None:
+        """.get_secret_value() returns the original key unchanged."""
+        secret = "sk-round-trip-1234567890"
+        config = LLMConfig(provider="openai", model="gpt-4o", api_key=secret)
+        assert config.api_key is not None
+        assert config.api_key.get_secret_value() == secret
 
     def test_retriever_config(self) -> None:
         """Test RetrieverConfig creation."""
