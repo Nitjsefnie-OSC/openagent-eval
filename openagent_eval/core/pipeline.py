@@ -221,7 +221,7 @@ class Pipeline:
         prompt_tokens = token_usage.prompt_tokens if token_usage else 0
         completion_tokens = token_usage.completion_tokens if token_usage else 0
         provider_name = getattr(self._llm, "name", None)
-        model_name = getattr(self._llm, "_model", None) or self.config.llm.model
+        model_name = getattr(self._llm, "model_name", None) or self.config.llm.model
 
         for name, metric in self._metrics:
             try:

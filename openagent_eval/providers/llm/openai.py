@@ -136,6 +136,11 @@ class OpenAIProvider(LLMProvider):
         self._client = AsyncOpenAI(api_key=self._api_key)
         self._encoding: tiktoken.Encoding | None = None
 
+    @property
+    def model_name(self) -> str | None:
+        """Return the configured OpenAI model identifier."""
+        return self._model
+
     def _get_encoding(self) -> tiktoken.Encoding:
         """Get or create tiktoken encoding for the configured model.
 

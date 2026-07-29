@@ -82,6 +82,22 @@ class LLMProvider(ABC):
         """
         pass
 
+    @property
+    def model_name(self) -> str | None:
+        """Return the model identifier currently in use by this provider.
+
+        Subclasses should override this property to report the actual model
+        identifier (e.g. ``"gpt-4o"``). The default implementation returns
+        ``None`` so that legacy third-party providers that do not define it
+        keep working; callers should fall back to ``config.llm.model`` when
+        this property returns ``None``.
+
+        Returns:
+            The model identifier in use, or ``None`` if the provider does not
+            expose one.
+        """
+        return None
+
     def validate_inputs(self, **kwargs: Any) -> None:  # noqa: B027
         """Validate provider inputs before execution.
 

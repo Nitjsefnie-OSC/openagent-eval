@@ -139,6 +139,11 @@ class Anthropic(LLMProvider):
 
         self._client = anthropic.AsyncAnthropic(api_key=api_key)
 
+    @property
+    def model_name(self) -> str | None:
+        """Return the configured Anthropic model identifier."""
+        return self.model
+
     async def generate(self, prompt: str, **kwargs: Any) -> str:
         """Generate a response from the LLM.
 

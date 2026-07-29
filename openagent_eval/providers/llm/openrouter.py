@@ -122,6 +122,11 @@ class OpenRouter(LLMProvider):
         self.max_tokens = max_tokens
         self.base_url = base_url.rstrip("/")
 
+    @property
+    def model_name(self) -> str | None:
+        """Return the configured OpenRouter model identifier."""
+        return self.model
+
     async def generate_with_usage(self, prompt: str, **kwargs: Any) -> "LLMResponse":
         """Generate a response and return it with token usage and latency.
 

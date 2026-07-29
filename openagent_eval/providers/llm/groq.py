@@ -139,6 +139,11 @@ class Groq(LLMProvider):
                 original_error=e,
             ) from e
 
+    @property
+    def model_name(self) -> str | None:
+        """Return the configured Groq model identifier."""
+        return self.model
+
     async def generate(self, prompt: str, **kwargs: Any) -> str:
         """Generate a response from the LLM.
 
