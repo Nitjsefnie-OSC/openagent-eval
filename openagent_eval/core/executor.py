@@ -26,7 +26,7 @@ class Executor:
         self.max_workers = max_workers
         self.timeout = timeout
         self._semaphore = asyncio.Semaphore(max_workers)
-        self._thread_pool = ThreadPoolExecutor(max_workers=max_workers)
+        self._thread_pool: ThreadPoolExecutor | None = None
 
     async def execute_parallel(
         self,
@@ -80,7 +80,8 @@ class Executor:
             List of results in the same order as ``coroutines``.
 
         Raises:
-            MetricExecutionError: If a coroutine times out.
+            MetricExecutionError: If a coroutine times out. The first
+                failure cancels the remaining coroutines.
         """
         async def _run(coro: Any) -> Any:
             async with self._semaphore:
@@ -92,7 +93,16 @@ class Executor:
                         details={"timeout": self.timeout},
                     ) from None
 
-        return await asyncio.gather(*[_run(c) for c in coroutines])
+        try:
+            async with asyncio.TaskGroup() as tg:
+                tasks = [tg.create_task(_run(c)) for c in coroutines]
+        except* Exception as eg:
+            # TaskGroup cancels the remaining tasks and bundles the
+            # failures; re-raise the first one to preserve the public
+            # error contract (e.g. MetricExecutionError on timeout).
+            raise eg.exceptions[0] from None
+
+        return [t.result() for t in tasks]
 
     async def execute_sequential(
         self,
@@ -133,7 +143,7 @@ class Executor:
                 ) from e
         return results
 
-    def run_in_thread(
+    async def run_in_thread(
         self,
         func: Callable[..., Any],
         *args: Any,
@@ -147,17 +157,18 @@ class Executor:
             **kwargs: Keyword arguments to pass to the function.
 
         Returns:
-            An awaitable resolving to the result of the function.
+            The result of the function.
         """
-        loop = asyncio.get_event_loop()
-        if not loop.is_running():
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        return loop.run_in_executor(
+        if self._thread_pool is None:
+            self._thread_pool = ThreadPoolExecutor(max_workers=self.max_workers)
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
             self._thread_pool,
             lambda: func(*args, **kwargs),
         )
 
     def shutdown(self) -> None:
         """Shutdown the executor and clean up resources."""
-        self._thread_pool.shutdown(wait=True)
+        if self._thread_pool is not None:
+            self._thread_pool.shutdown(wait=True)
+            self._thread_pool = None
