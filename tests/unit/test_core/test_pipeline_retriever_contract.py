@@ -49,6 +49,16 @@ class _NonMockRetriever(Retriever):
         ]
 
 
+class _LegacyRetriever(Retriever):
+    """Out-of-tree retriever written against the old two-argument signature."""
+
+    name = "legacy"
+    description = "Legacy retriever with no ground_truth_contexts support"
+
+    async def retrieve(self, query: str, k: int = 5) -> list[Document]:
+        return [Document(content=f"legacy doc for {query}", score=1.0, id="legacy-1")]
+
+
 @pytest.mark.asyncio
 async def test_pipeline_passes_ground_truth_contexts_to_non_mock_retriever() -> None:
     """A retriever whose name is not ``mock`` still receives ground_truth_contexts."""
@@ -81,3 +91,40 @@ async def test_pipeline_passes_ground_truth_contexts_to_non_mock_retriever() -> 
     )
 
     assert retriever.captured_ground_truth_contexts == expected_contexts
+
+
+@pytest.mark.asyncio
+async def test_pipeline_keeps_legacy_retriever_working() -> None:
+    """A retriever with the old two-argument signature still returns documents.
+
+    Before the capability-detection fix, the pipeline unconditionally passed
+    ``ground_truth_contexts`` to every retriever. A legacy retriever raised
+    ``TypeError``, which was swallowed by the bare ``except Exception`` in
+    ``_retrieve``, causing it to silently return no documents. This test
+    asserts that the legacy retriever's documents actually reach the result.
+    """
+    from openagent_eval.providers.llm.mock import MockLLMProvider
+
+    config = Config(
+        dataset=DatasetConfig(path="data/questions.json"),
+        llm=LLMConfig(provider="mock", model="mock-model"),
+        retriever=RetrieverConfig(provider="legacy"),
+        metrics=MetricsConfig(),
+        report=ReportConfig(),
+        parallel=False,
+    )
+
+    retriever = _LegacyRetriever()
+    pipeline = Pipeline(config, retriever=retriever, llm=MockLLMProvider())
+
+    result = await pipeline.execute(
+        [
+            {
+                "question": "What is RAG?",
+                "ground_truth": "RAG is retrieval augmented generation.",
+                "ground_truth_contexts": ["expected gt context"],
+            }
+        ]
+    )
+
+    assert result.results[0].contexts == ["legacy doc for What is RAG?"]
