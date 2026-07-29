@@ -167,12 +167,9 @@ class Pipeline:
         """Retrieve contexts for a question, or fall back to dataset context."""
         if self._retriever is not None:
             try:
-                if getattr(self._retriever, "name", None) == "mock":
-                    docs = await self._retriever.retrieve(
-                        question, k=self._k, ground_truth_contexts=gt_contexts
-                    )
-                else:
-                    docs = await self._retriever.retrieve(question, k=self._k)
+                docs = await self._retriever.retrieve(
+                    question, k=self._k, ground_truth_contexts=gt_contexts
+                )
                 return [doc.content for doc in docs]
             except Exception:
                 # Retrieval failure -> fall back to any dataset-provided context.
