@@ -224,8 +224,6 @@ class StalenessDetector(BaseCorpusAnalyzer):
             Parsed datetime or None.
         """
         # Normalize timezone format: +00:00 -> +0000
-        import re
-
         normalized = re.sub(r"([+-]\d{2}):(\d{2})$", r"\1\2", date_str.strip())
 
         formats = [

@@ -161,11 +161,18 @@ class CorpusAuditor:
         if self.checks is None:
             return list(all_analyzers.values())
 
-        return [
-            all_analyzers[name]
-            for name in self.checks
-            if name in all_analyzers
-        ]
+        unknown = [name for name in self.checks if name not in all_analyzers]
+        if unknown:
+            valid = sorted(all_analyzers)
+            raise CorpusValidationError(
+                message=(
+                    f"Unknown corpus check(s): {', '.join(unknown)}. "
+                    f"Valid checks are: {', '.join(valid)}."
+                ),
+                validation_errors=[f"unrecognized check: {name}" for name in unknown],
+            )
+
+        return [all_analyzers[name] for name in self.checks]
 
     def _load_documents(self, path: Path) -> list[CorpusDocument]:
         """Load documents from a directory or single file.
