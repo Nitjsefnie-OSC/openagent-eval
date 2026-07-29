@@ -99,7 +99,12 @@ class Anthropic(LLMProvider):
                 in environment.
         """
         if config is not None:
-            api_key = api_key or getattr(config, "api_key", None)
+            config_api_key = getattr(config, "api_key", None)
+            api_key = api_key or (
+                config_api_key.get_secret_value()
+                if config_api_key is not None
+                else None
+            )
             model = getattr(config, "model", model) or model
             temperature = (
                 getattr(config, "temperature", temperature)
