@@ -1,5 +1,6 @@
 """Unit tests for CLI test command."""
 
+import json
 import re
 
 from typer.testing import CliRunner
@@ -77,3 +78,59 @@ class TestTestCommand:
         output = _strip_ansi(result.output)
         assert "threshold" in output.lower()
         assert "-t" in output
+
+    def test_test_command_passing_threshold_is_not_reported_missing(self, tmp_path):
+        """Regression test for issue #228.
+
+        A threshold that should pass must not fail with "metric not found":
+        the gate summary returned by ``OAEvalPlugin.run_evaluation`` must
+        carry ``metrics_summary`` so the CLI threshold-evaluation path can
+        look the metric up. Uses fully offline mock providers.
+        """
+        dataset_path = tmp_path / "data.json"
+        dataset_path.write_text(
+            json.dumps(
+                [
+                    {
+                        "question": "What is RAG?",
+                        "ground_truth": "RAG combines retrieval with generation.",
+                        "context": "RAG combines retrieval with generation.",
+                        "ground_truth_contexts": [
+                            "RAG combines retrieval with generation."
+                        ],
+                    }
+                ]
+            )
+        )
+        config_path = tmp_path / "config.yaml"
+        config_path.write_text(
+            f"""
+dataset:
+  path: {dataset_path}
+llm:
+  provider: mock
+  model: mock-model
+retriever:
+  provider: mock
+  settings:
+    collection_name: c
+metrics:
+  retrieval: []
+  generation: ["exact_match"]
+  performance: []
+  cost: []
+report:
+  output: json
+  output_dir: {tmp_path / "reports_out"}
+parallel: false
+"""
+        )
+
+        result = runner.invoke(
+            app,
+            ["test", str(config_path), "-t", "exact_match:gte:0.5"],
+        )
+        output = _strip_ansi(result.output)
+
+        assert "not found in results" not in output
+        assert result.exit_code == 0, output
