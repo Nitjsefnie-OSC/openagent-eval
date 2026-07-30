@@ -227,9 +227,13 @@ class OAEvalPlugin:
         # Evaluate thresholds
         evaluator = ThresholdEvaluator(cicd_config)
         eval_result = evaluator.evaluate_all_gates(flat_metrics)
-        # Carry the metrics in the same shape the engine summary produces so
-        # downstream consumers (e.g. the `oaeval test` threshold path) can
-        # evaluate gates against them.
+        # Expose the plugin's threshold-target mapping so downstream
+        # consumers (e.g. the `oaeval test` threshold path) can evaluate
+        # gates against it. This is the engine's metric set plus the
+        # execution counts (total_items, successful_evaluations,
+        # failed_evaluations) that the plugin already supports as gate
+        # targets, so it is a superset of the engine summary's own
+        # `metrics_summary`, not the same set.
         eval_result.summary["metrics_summary"] = flat_metrics
         eval_result.summary["duration_seconds"] = duration
 
