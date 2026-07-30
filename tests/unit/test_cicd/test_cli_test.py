@@ -1,5 +1,6 @@
 """Unit tests for CLI test command."""
 
+import asyncio
 import json
 import re
 
@@ -177,3 +178,32 @@ class TestTestCommand:
         assert "not found in results" not in output
         assert "exact_match: 1.0000 NOT gte 1.5000" in output, output
         assert result.exit_code == 1, output
+
+    def test_test_command_after_completed_asyncio_run(self, tmp_path):
+        """Regression test for issue #261.
+
+        ``asyncio.run()`` calls ``asyncio.set_event_loop(None)`` when it
+        completes, so afterwards ``asyncio.get_event_loop()`` in the main
+        thread raises ``RuntimeError`` instead of auto-creating a loop.
+        ``run_evaluation`` must not depend on that policy state: after a
+        completed ``asyncio.run`` in the same process, the evaluation must
+        still actually run and the threshold must be evaluated against the
+        real metrics — not swallowed into an ``error`` summary that the
+        CLI then reports as "not found in results".
+        """
+        asyncio.run(asyncio.sleep(0))
+
+        config_path = _write_offline_config(tmp_path)
+
+        result = runner.invoke(
+            app,
+            ["test", str(config_path), "-t", "exact_match:gte:0.5"],
+        )
+        output = _strip_ansi(result.output)
+
+        assert "not found in results" not in output
+        # The evaluation must have actually run: the threshold is
+        # evaluated against the real computed value (1.0) and passes.
+        assert "exact_match: 1.0000 gte 0.5000" in output, output
+        assert "PASS" in output, output
+        assert result.exit_code == 0, output

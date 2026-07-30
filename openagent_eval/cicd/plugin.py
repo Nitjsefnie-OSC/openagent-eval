@@ -175,18 +175,29 @@ class OAEvalPlugin:
 
             dataset_items = load_dataset_for_run(eval_config)
 
-            # Run async evaluation
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # If we're already in an async context, create a new task
+            # Run async evaluation. Use get_running_loop() instead of
+            # get_event_loop(): after any completed asyncio.run() in the
+            # process, the event-loop policy holds no current loop
+            # (asyncio.run calls set_event_loop(None) on completion), so
+            # get_event_loop() raises RuntimeError before is_running() is
+            # ever reached — and the broad `except Exception` below then
+            # swallowed it into an error summary (issue #261).
+            # get_running_loop() only asks whether a loop is running right
+            # now, independent of the policy's current-loop state.
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                # No loop is running: the normal synchronous case.
+                result = asyncio.run(engine.run(dataset_items))
+            else:
+                # We're already inside a live async context; offload to a
+                # thread and run it there, preserving the timeout.
                 import concurrent.futures
 
                 with concurrent.futures.ThreadPoolExecutor() as pool:
                     result = pool.submit(
                         asyncio.run, engine.run(dataset_items)
                     ).result(timeout=timeout)
-            else:
-                result = loop.run_until_complete(engine.run(dataset_items))
 
             # Extract metrics from summary
             metrics = result.summary.get("metrics_summary", {})
