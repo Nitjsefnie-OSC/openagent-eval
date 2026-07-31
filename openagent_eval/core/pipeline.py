@@ -117,7 +117,7 @@ class Pipeline:
 
         try:
             # 1. Retrieval
-            contexts = await self._retrieve(question, context, gt_contexts, item, result)
+            contexts = await self._retrieve(question, context, gt_contexts)
 
             # 2. Generation
             answer, token_usage, latency_ms = await self._generate(
@@ -223,8 +223,6 @@ class Pipeline:
         question: str,
         context: str | None,
         gt_contexts: list[str],
-        item: dict[str, Any],
-        result: PipelineResult,
     ) -> list[str]:
         """Retrieve contexts for a question, or fall back to dataset context.
 
