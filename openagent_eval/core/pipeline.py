@@ -228,9 +228,13 @@ class Pipeline:
     ) -> list[str]:
         """Retrieve contexts for a question, or fall back to dataset context.
 
-        A retrieval failure is logged and recorded in ``result.errors`` so a
-        broken retriever is distinguishable from a clean empty retrieval; the
-        fallback behaviour itself is unchanged.
+        A retrieval failure is logged (log-only) so a broken retriever is
+        distinguishable from a clean empty retrieval; the fallback behaviour
+        itself is unchanged. The failure is deliberately NOT recorded in
+        ``result.errors``: engine.py derives ``successful_evaluations`` from
+        ``len(results) - len(errors)``, and an entry here has no paired
+        placeholder result, so recording it would mis-count a healthy run
+        as failed.
         """
         if self._retriever is not None:
             try:
@@ -249,13 +253,6 @@ class Pipeline:
                     question,
                     type(e).__name__,
                     e,
-                )
-                result.errors.append(
-                    {
-                        "item": {k: v for k, v in item.items() if k != "metadata"},
-                        "error": str(e),
-                        "error_type": type(e).__name__,
-                    }
                 )
                 if context:
                     return [context]

@@ -2,8 +2,11 @@
 
 Verifies that a retriever failure inside ``Pipeline._retrieve`` is no longer
 silently swallowed: the dataset-context fallback still applies (behaviour
-unchanged), but the failure is now logged naming the exception and recorded
-in the run's ``errors`` in the same shape as the other failure modes.
+unchanged), and the failure is logged naming the exception. The degradation
+is log-only: it must NOT be recorded in the run's ``errors``, because
+engine.py computes ``successful_evaluations`` as ``len(results) -
+len(errors)`` and an entry without a paired placeholder result would
+mis-count a healthy run as failed (breaking cicd gate metrics).
 """
 
 from __future__ import annotations
@@ -48,7 +51,7 @@ class _FailingRetriever(Retriever):
 async def test_retrieval_failure_is_visible_and_still_falls_back(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """A raising retriever degrades to dataset context but is surfaced."""
+    """A raising retriever degrades to dataset context and is logged only."""
     from openagent_eval.providers.llm.mock import MockLLMProvider
 
     config = Config(
@@ -78,13 +81,14 @@ async def test_retrieval_failure_is_visible_and_still_falls_back(
     # (a) Fallback behaviour is unchanged: the dataset context is still used.
     assert result.results[0].contexts == ["dataset-provided context"]
 
-    # (b) The failure is recorded in the run's errors, in the same shape the
-    # other failure modes use (item / error / error_type).
-    assert len(result.errors) == 1
-    entry = result.errors[0]
-    assert entry["error_type"] == "RuntimeError"
-    assert "vector store unreachable" in entry["error"]
-    assert entry["item"]["question"] == "What is RAG?"
+    # (b) The degradation is log-only: it must NOT appear in result.errors.
+    # engine.py computes successful_evaluations as
+    # len(results) - len(errors), so an errors entry without a paired
+    # placeholder result would mis-count this healthy run as failed and
+    # trip cicd gate metrics. This pins that property.
+    assert result.errors == []
+    assert len(result.results) == 1
+    assert len(result.results) - len(result.errors) == 1
 
     # (c) The failure is logged, naming the exception.
     assert "RuntimeError" in caplog.text
