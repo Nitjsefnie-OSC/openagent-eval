@@ -12,11 +12,14 @@ registry. Each item is evaluated independently so the loop can run in parallel.
 from __future__ import annotations
 
 import inspect
+import logging
 from dataclasses import dataclass, field
 from typing import Any
 
 from openagent_eval.config.models import Config
 from openagent_eval.metrics.base import BaseMetric
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -114,7 +117,7 @@ class Pipeline:
 
         try:
             # 1. Retrieval
-            contexts = await self._retrieve(question, context, gt_contexts)
+            contexts = await self._retrieve(question, context, gt_contexts, item, result)
 
             # 2. Generation
             answer, token_usage, latency_ms = await self._generate(
@@ -193,7 +196,14 @@ class Pipeline:
 
         try:
             sig = inspect.signature(retrieve_method)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
+            logger.warning(
+                "Could not inspect signature of %r (%s: %s); "
+                "assuming no ground_truth_contexts support",
+                retrieve_method,
+                type(e).__name__,
+                e,
+            )
             self._retriever_supports_ground_truth_contexts = False
             return False
 
@@ -209,9 +219,19 @@ class Pipeline:
         return False
 
     async def _retrieve(
-        self, question: str, context: str | None, gt_contexts: list[str]
+        self,
+        question: str,
+        context: str | None,
+        gt_contexts: list[str],
+        item: dict[str, Any],
+        result: PipelineResult,
     ) -> list[str]:
-        """Retrieve contexts for a question, or fall back to dataset context."""
+        """Retrieve contexts for a question, or fall back to dataset context.
+
+        A retrieval failure is logged and recorded in ``result.errors`` so a
+        broken retriever is distinguishable from a clean empty retrieval; the
+        fallback behaviour itself is unchanged.
+        """
         if self._retriever is not None:
             try:
                 if self._supports_ground_truth_contexts():
@@ -221,8 +241,22 @@ class Pipeline:
                 else:
                     docs = await self._retriever.retrieve(question, k=self._k)
                 return [doc.content for doc in docs]
-            except Exception:
+            except Exception as e:
                 # Retrieval failure -> fall back to any dataset-provided context.
+                logger.warning(
+                    "Retrieval failed for question %r (%s: %s); "
+                    "falling back to dataset-provided context",
+                    question,
+                    type(e).__name__,
+                    e,
+                )
+                result.errors.append(
+                    {
+                        "item": {k: v for k, v in item.items() if k != "metadata"},
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                    }
+                )
                 if context:
                     return [context]
                 return []
