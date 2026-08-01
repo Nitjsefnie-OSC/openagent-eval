@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Removed
+
+- **Dead Executor Methods** — remove `Executor.execute_parallel()` and `Executor.execute_sequential()`, which had no production callers (the pipeline uses `Executor.gather()`); their only in-tree references were two dedicated unit tests (#52)
+
 ---
 
 ## [0.4.8] - 2026-07-24
