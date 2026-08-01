@@ -151,6 +151,7 @@ nav:
       - providers/index.md
       - LLM:
           - providers/llm/index.md
+          - API Key Setup: providers/llm/api-key-setup.md
           - OpenAI: providers/llm/openai.md
           - Anthropic: providers/llm/anthropic.md
           - Gemini: providers/llm/gemini.md
