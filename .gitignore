@@ -237,7 +237,7 @@ tiktoken-docs.md
 /data/
 
 # Local config files (contains local settings, use env vars for secrets)
-config.yaml
+/config.yaml
 config.groq.yaml
 config.*.yaml
 
