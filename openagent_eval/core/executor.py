@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, Coroutine
+from typing import Any, Callable
 
 from openagent_eval.exceptions import MetricExecutionError
 
@@ -27,48 +27,6 @@ class Executor:
         self.timeout = timeout
         self._semaphore = asyncio.Semaphore(max_workers)
         self._thread_pool: ThreadPoolExecutor | None = None
-
-    async def execute_parallel(
-        self,
-        tasks: list[Callable[..., Coroutine[Any, Any, Any]]],
-        *args: Any,
-        **kwargs: Any,
-    ) -> list[Any]:
-        """Execute multiple tasks in parallel with concurrency limits.
-
-        Args:
-            tasks: List of async functions to execute.
-            *args: Positional arguments to pass to each task.
-            **kwargs: Keyword arguments to pass to each task.
-
-        Returns:
-            List of results from each task.
-
-        Raises:
-            MetricExecutionError: If a task fails or times out.
-        """
-        async def _run_with_semaphore(
-            task: Callable[..., Coroutine[Any, Any, Any]],
-        ) -> Any:
-            async with self._semaphore:
-                try:
-                    return await asyncio.wait_for(
-                        task(*args, **kwargs),
-                        timeout=self.timeout,
-                    )
-                except asyncio.TimeoutError:
-                    raise MetricExecutionError(
-                        message=f"Task timed out after {self.timeout}s",
-                        details={"timeout": self.timeout},
-                    )
-                except Exception as e:
-                    raise MetricExecutionError(
-                        message=f"Task failed: {e}",
-                        original_error=e,
-                    ) from e
-
-        coroutines = [_run_with_semaphore(task) for task in tasks]
-        return await asyncio.gather(*coroutines)
 
     async def gather(self, coroutines: list[Any]) -> list[Any]:
         """Run coroutines concurrently with the configured concurrency limit.
@@ -103,45 +61,6 @@ class Executor:
             raise eg.exceptions[0] from None
 
         return [t.result() for t in tasks]
-
-    async def execute_sequential(
-        self,
-        tasks: list[Callable[..., Coroutine[Any, Any, Any]]],
-        *args: Any,
-        **kwargs: Any,
-    ) -> list[Any]:
-        """Execute tasks sequentially.
-
-        Args:
-            tasks: List of async functions to execute.
-            *args: Positional arguments to pass to each task.
-            **kwargs: Keyword arguments to pass to each task.
-
-        Returns:
-            List of results from each task.
-
-        Raises:
-            MetricExecutionError: If a task fails.
-        """
-        results: list[Any] = []
-        for task in tasks:
-            try:
-                result = await asyncio.wait_for(
-                    task(*args, **kwargs),
-                    timeout=self.timeout,
-                )
-                results.append(result)
-            except asyncio.TimeoutError:
-                raise MetricExecutionError(
-                    message=f"Task timed out after {self.timeout}s",
-                    details={"timeout": self.timeout},
-                )
-            except Exception as e:
-                raise MetricExecutionError(
-                    message=f"Task failed: {e}",
-                    original_error=e,
-                ) from e
-        return results
 
     async def run_in_thread(
         self,
