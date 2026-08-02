@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 import pytest
 from typer.testing import CliRunner
 
-from openagent_eval.cli.context import reset_context, set_context
+from openagent_eval.cli.context import reset_context
 from openagent_eval.cli.main import app
 from openagent_eval.diagnosis.models import (
     BlameTarget,
@@ -33,9 +33,15 @@ def strip_ansi(text: str) -> str:
 
 @pytest.fixture(autouse=True)
 def _reset_cli_context() -> None:
-    """Reset the global CLI context before each test so prior invocations do not leak state."""
+    """Reset the global CLI context before and after every test.
+
+    The CLI context (quiet/json/verbose flags) lives in a module-level
+    global, so leaving it dirty between tests can make later tests pass
+    or fail depending on run order.
+    """
     reset_context()
     yield
+    reset_context()
 
 
 @pytest.fixture
