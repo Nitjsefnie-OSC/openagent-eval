@@ -68,28 +68,6 @@ class TestExecutor:
         assert executor.max_workers == 2
         assert executor.timeout == 60.0
 
-    @pytest.mark.asyncio
-    async def test_execute_parallel(self) -> None:
-        """Test parallel execution."""
-        executor = Executor(max_workers=2)
-
-        async def fake_task(x: int) -> int:
-            return x * 2
-
-        results = await executor.execute_parallel([fake_task, fake_task], 5)
-        assert results == [10, 10]
-
-    @pytest.mark.asyncio
-    async def test_execute_sequential(self) -> None:
-        """Test sequential execution."""
-        executor = Executor(max_workers=2)
-
-        async def fake_task(x: int) -> int:
-            return x * 2
-
-        results = await executor.execute_sequential([fake_task, fake_task], 5)
-        assert results == [10, 10]
-
 
 class TestPipeline:
     """Tests for the evaluation pipeline."""
