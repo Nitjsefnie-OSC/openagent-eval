@@ -110,8 +110,22 @@ class TestCorpusAuditor:
     @pytest.mark.asyncio
     async def test_audit_with_valid_checks_still_works(self, temp_corpus):
         """A fully valid check list still produces a normal audit report."""
+        import sys
+        from unittest.mock import MagicMock, patch
+
+        import numpy as np
+
+        # Stub the embedding model so the duplicate analyzer runs its real
+        # similarity pipeline without downloading weights from the Hugging
+        # Face hub — network access is not guaranteed in CI.
+        mock_st = MagicMock()
+        mock_st.SentenceTransformer.return_value.encode.return_value = np.array(
+            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+        )
+
         auditor = CorpusAuditor(checks=["staleness", "duplicate"])
-        report = await auditor.audit(str(temp_corpus))
+        with patch.dict(sys.modules, {"sentence_transformers": mock_st}):
+            report = await auditor.audit(str(temp_corpus))
 
         assert report.total_documents == 3
         assert "staleness" in report.checks_performed
