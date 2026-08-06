@@ -200,7 +200,7 @@ The `report` section controls how evaluation summaries and output files are gene
 
 | Field | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `output` | `str` | `"terminal"` | No | Output format for reports. Allowed values: `"terminal"`, `"markdown"`, `"html"`, `"json"`. |
+| `output` | `OutputFormat` | `"terminal"` | No | Output format for reports. Allowed values: `"terminal"`, `"markdown"`, `"html"`, `"json"`. 
 | `output_dir` | `str` | `"./reports"` | No | Output directory path where generated reports will be stored. |
 | `include_examples` | `bool` | `true` | No | Whether to include detailed itemized examples in generated reports. |
 | `max_examples` | `int` | `10` | No | Maximum number of individual evaluation sample details to include (`>= 1`). |
